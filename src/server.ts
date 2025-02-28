@@ -27,7 +27,25 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, '..', 'views'));
 
-async function getExchangeRates() {
+interface Currency  {
+  name: string;
+  unit: string;
+  value: number;
+  type: string;
+};
+
+interface Rates  {
+  rates: {
+    [key: string]: Currency;
+  };
+};
+
+interface ExchangeRateResult {
+  timestamp: Date;
+  data: Rates;
+};
+
+/* async function getExchangeRates() : Promise<Rates> {
   const response = await axios.get(
     'https://api.coingecko.com/api/v3/exchange_rates',
     {
@@ -38,11 +56,23 @@ async function getExchangeRates() {
   );
 
   return response.data;
-}
+} */
+ const getExchangeRates : any = async () =>{
+    const response = await axios.get(
+      'https://api.coingecko.com/api/v3/exchange_rates',
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    );
+  
+    return response.data;
+  }
 
-async function refreshExchangeRates() {
+async function refreshExchangeRates() : Promise<ExchangeRateResult>{
   const rates = await getExchangeRates();
-  const result = {
+  const result : ExchangeRateResult = {
     timestamp: new Date(),
     data: rates,
   };
@@ -65,7 +95,8 @@ appCache.on('expired', async (key) => {
 
 app.get('/', async (req, res, next) => {
   try {
-    let result = appCache.get('exchangeRates');
+    let result : ExchangeRateResult | undefined;
+    result = appCache.get('exchangeRates');
 
     if (result == null) {
       result = await refreshExchangeRates();
